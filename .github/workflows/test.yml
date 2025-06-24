@@ -1,0 +1,128 @@
+name: auto-grading
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+  rust_toolchain: nightly
+
+jobs:
+  basic-test:
+    if: github.repository != 'arceos-org/oscamp'
+    runs-on: ubuntu-latest
+    env:
+      PATH: /opt/musl/x86_64-linux-musl-cross/bin:/opt/musl/aarch64-linux-musl-cross/bin:/opt/musl/riscv64-linux-musl-cross/bin:$HOME/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+    outputs:
+      lab1_points: ${{ steps.lab1_points.outputs.lab1_points}}
+    steps:
+      - name: challenge test check 
+        uses: actions/checkout@v4
+        with:
+         ref: lab1
+    
+      - name: install dependencies
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y \
+            wget \
+            xxd \
+            curl \
+            gcc \
+            g++ \
+            make \
+            libclang-dev \
+            qemu-system-misc \
+            bash \
+            sudo \
+            git \
+            dosfstools \
+            build-essential \
+            pkg-config \
+            libssl-dev \
+            libz-dev \
+            libclang-dev
+
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
+          cargo install cargo-binutils
+
+          mkdir -p /opt/musl && cd /opt/musl
+          wget https://musl.cc/aarch64-linux-musl-cross.tgz
+          wget https://musl.cc/riscv64-linux-musl-cross.tgz
+          wget https://musl.cc/x86_64-linux-musl-cross.tgz
+          tar zxf aarch64-linux-musl-cross.tgz
+          tar zxf riscv64-linux-musl-cross.tgz
+          tar zxf x86_64-linux-musl-cross.tgz
+
+      - name: Run lab1
+        id : lab1_points
+        run: |
+            qemu-system-riscv64 --version
+
+            export PATH="$HOME/.cargo/bin:$PATH"
+            source $HOME/.cargo/env
+
+            cd arceos || exit 1
+
+            ./verify_lab1.sh > tmpa.txt
+
+            lab1_score=$(grep -oE 'Indicator: *[0-9]+' tmpa.txt | tail -n1 | grep -oE '[0-9]+') || true
+            lab1_score=${lab1_score:-0}
+
+            cat tmpa.txt
+
+            echo "lab1_points=$lab1_score" 
+            echo "lab1_points=$lab1_score" >>"$GITHUB_OUTPUT"
+            rm tmpa.txt -f
+            
+  deploy:
+    if: github.repository != 'arceos-org/oscamp'
+    name: Report Score to Server
+    needs:  basic-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name : Deploy challenge to pages
+        env : 
+          course_id: ${{ secrets.ARCEOS_CHALLENGE_2025_SPRING_COURSE_ID }}
+          post_api: ${{ secrets.ARCEOS_CHALLENGE_2025_SPRING_POST_API }}
+          token: ${{ secrets.ARCEOS_CHALLENGE_2025_SPRING_TOKEN }}
+          github_user: ${{ github.actor }}
+          lab1_score: ${{ needs.basic-test.outputs.lab1_points }}
+        run : |
+          echo "Lab1: $lab1_score"
+
+          lab1_score_after=$(echo "$lab1_score" | tr -d '\r\n ')
+
+          total_score=373
+
+          score_json=$(jq -n \
+          --arg channel "github" \
+          --arg courseId "$course_id" \
+          --arg name "$github_user" \
+          --arg score "$lab1_score_after" \
+          --arg totalScore "$total_score" \
+          --arg ext "{}" \
+          '{
+          channel: $channel,
+          courseId: $courseId,
+          name: $name,
+          score: ($score | tonumber),
+          totalScore: ($totalScore | tonumber),
+          ext: $ext
+          }')
+            
+          response=$(curl -X POST "$post_api" \
+          -H "accept: application/json;charset=utf-8" \
+          -H "Content-Type: application/json" \
+          -H "token: $token" \
+          -d "$score_json" \
+          -s)
+
+          if echo "$response" | grep -q '"result":1'; then
+            echo "Success: Score submitted"
+          else
+            echo "Error: API submission failed"
+          echo "$response"
+            exit 1
+          fi
