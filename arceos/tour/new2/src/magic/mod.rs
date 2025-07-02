@@ -1,3 +1,5 @@
+mod map;
+
 /// General registers of RISC-V.
 #[allow(missing_docs)]
 #[repr(C)]

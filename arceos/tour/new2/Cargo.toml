@@ -7,6 +7,7 @@ edition = "2021"
 axstd = { workspace = true, features = ["alloc", "paging", "multitask", "sched_cfs"], optional = true }
 axdriver = { workspace = true, features = ["virtio-blk"] }
 axhal = { workspace = true }
+axalloc = { workspace = true }
 linkme = "0.3"
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
