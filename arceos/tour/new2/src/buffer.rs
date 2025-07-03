@@ -3,30 +3,27 @@ use axhal::mem::PAGE_SIZE_4K;
 
 pub struct Buffer<'a> {
     pub vaddr: usize,
-    len: usize,
-    data: &'a mut [u8; PAGE_SIZE_4K],
+    //pub len: usize,
+    pub data: &'a mut [u8; PAGE_SIZE_4K],
 }
 
 impl Buffer<'_> {
     pub fn new() -> Self {
         let vaddr = global_allocator().alloc_pages(1, PAGE_SIZE_4K).unwrap();
-        let len = 0usize;
+        //let len = 0usize;
         let data = unsafe { &mut *(vaddr as *mut [u8; PAGE_SIZE_4K]) };
-        Buffer { vaddr, len, data }
-    }
-
-    pub fn get_vaddr(&self) -> usize {
-        self.vaddr
+        Buffer { vaddr, data }
     }
     
     pub fn set_data(&mut self, data: &str) {
         assert!(data.len() <= PAGE_SIZE_4K);
         self.data[..data.len()].copy_from_slice(data.as_bytes());
-        self.len = data.len();
+        //self.len = data.len();
     }
 
     pub fn get_data(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(&self.data[..self.len]) }
+        let len = self.data.iter().position(|&b| b == 0).unwrap_or(PAGE_SIZE_4K);
+        unsafe { core::str::from_utf8_unchecked(&self.data[..len]) }
     }
 }
 

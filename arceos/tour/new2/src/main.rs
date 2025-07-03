@@ -81,13 +81,9 @@ fn main() {
     println!("Current satp: {:x}", satp);
     
     use buffer::Buffer;
-    let c: usize = 9usize;
-    println!("c = {}", c);
-    println!("now");
-    
     let mut page_a:Buffer = Buffer::new();
-    
     let mut page_b:Buffer = Buffer::new();
+
     println!("page_a vaddr: {:#x}", page_a.vaddr);
     println!("page_b vaddr: {:#x}", page_b.vaddr);
     page_a.set_data("Hello from A.");
@@ -95,20 +91,40 @@ fn main() {
     page_b.set_data("Hello from B. ".repeat(20).as_str());
     println!("page_b data: {:#}", page_b.get_data());
     
+    use magic::map;
+
+    println!("\nmap a->b");
+    map(page_a.data.as_ptr() as usize, page_b.data.as_ptr() as usize);
+    
+    println!("page_a data: {:#}", page_a.get_data());
+    println!("page_a vaddr: {:#x}", page_a.data.as_ptr() as usize);
+    println!("page_b vaddr: {:#x}", page_b.data.as_ptr() as usize);
+
+    println!("\nmap b->a");
+    map(page_b.data.as_ptr() as usize, page_a.data.as_ptr() as usize);
+    
+    println!("page_b data: {:#}", page_b.get_data());
+    println!("page_a vaddr: {:#x}", page_a.data.as_ptr() as usize);
+    println!("page_b vaddr: {:#x}", page_b.data.as_ptr() as usize);
+
     // to be continued...
     let c: usize = 9usize;
     println!("c = {}", c);
     println!("now");
     
-    //(satp::read().ppn() << 12)
-    //satp::set(satp::Mode::Sv39, 0, root_paddr.as_usize() >> 12);
-    //asm::sfence_vma_all();
+    for r in axhal::mem::memory_regions() {
+        println!(
+            "Memory region {:?}", r);
+    }
+    //此时又有细心的同学注意到
 
     axhal::misc::terminate();
 }
 
 use riscv::register::scause::{self, Exception, Trap, Interrupt};
 use riscv::register::sie;
+
+use crate::magic::map;
 
 #[no_mangle]
 fn example_trap_handler(tf: &mut magic::TrapFrame) {
