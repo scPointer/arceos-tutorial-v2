@@ -170,7 +170,7 @@ fn main() {
                 *var_mut = *var_mut + 1;
                 println!("{name} {var_mut}");
                 // 等待5ms
-                //sleep(Duration::from_millis(5));
+                sleep(Duration::from_millis(5));
             }
         };
         let var2 = var.clone();
