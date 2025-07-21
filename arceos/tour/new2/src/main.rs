@@ -83,7 +83,7 @@ fn main() {
     let str_a = "Hello from A.";
     page_a.set_data(str_a);
     // [rust] 注意，裸字符串(&str)类型的 str_a 不需要任何支持， 但 str_b 其实是 String 类型的，需要 std::String
-    // 在第一个实验中，我们已经说明在内核中没有 std，所以此处实际上是 axstd::String。
+    // 在第一节实验中，我们已经说明在内核中没有 std，所以此处实际上是 axstd::String。
     // 而本文件开头的 extern axstd as std 骗过了编译器，使得此处的 str_b 不需要手动声明类型，而是自动适用 axstd::String 类型
     //
     // 注意，这种替代也经常骗过编辑器和检查。如声明如下语句：
@@ -96,7 +96,7 @@ fn main() {
     // 如果你发现其他显示为暗灰色的实验代码实际上确实被运行了，也可以如上添加对应的 feature。
     // 特别地，对于依赖于架构的代码，可以添加 "rust-analyzer.cargo.target" : "riscv64gc-unknown-none-elf",
     // 即可指定运行架构。
-    // 虽然本课程的目标是教授架构无关的内核编程，但前几个实验目前还是基于 riscv64 架构编写。
+    // 虽然本课程的目标是教授架构无关的内核编程，但前几节实验目前还是基于 riscv64 架构编写。
     //
     // 总之，当在本实验内核中见到 std:: 的代码时，它一定来自“假标准库” axstd。
 

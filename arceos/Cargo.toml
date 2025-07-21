@@ -52,6 +52,8 @@ members = [
     "tour/new1",
     "tour/new2",
     "tour/new3",
+    "tour/new4",
+    "tour/new5",
     
     "exercises/print_with_color",
     "exercises/support_hashmap",
