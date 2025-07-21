@@ -1,0 +1,21 @@
+[package]
+name = "new4"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+irq = ["axstd/sched_cfs"]
+
+
+[dependencies]
+axstd = { workspace = true, features = ["alloc", "paging", "multitask"], optional = true }
+axdriver = { workspace = true, features = ["virtio-blk"] }
+axhal = { workspace = true }
+axconfig = { workspace = true }
+#arceos_posix_api = { workspace = true, features = ["fs", "fd", "pipe"] }
+linkme = "0.3"
+
+[target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
+riscv = "0.11"
+sbi-rt = { version = "0.0.3", features = ["legacy"] }
+riscv_goldfish = { version = "0.1", optional = true }

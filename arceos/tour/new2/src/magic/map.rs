@@ -50,16 +50,25 @@ pub fn map(src: usize, dst: usize) {
     flush_tlb(Some(src.into()));
 }
 
+/// 查询页表(以 RISC-V 的 SV39 模式为例)
 pub fn check_paddr(src: usize) -> usize {
+    // satp 保存了当期页表的根所在的页面的编号
+    // 在 SV39 模式下，每个页有 2^12=4096 字节，所以地址最后12位是页面内部的偏移。
+    // 因此，页面编号左移 12 位可得到页面本身的地址。
     let mut page_addr: usize = satp::read().ppn() << 12;
 
+    // SV39 页表共分三级，每级由虚拟地中的 9 位决定。可类比城市号-街道号-门牌号。
     for index in [
-        (src >> 30) & 0x1ff,
-        (src >> 21) & 0x1ff,
-        (src >> 12) & 0x1ff,
+        (src >> 30) & 0x1ff, // 第38~30位
+        (src >> 21) & 0x1ff, // 第29~21位
+        (src >> 12) & 0x1ff, // 第20~12位
     ] {
+        // 每级查询时，先转换为虚拟地址
         page_addr = phys_to_virt(page_addr.into()).as_usize();
+        // 然后获取该地址对应的页面
         let page = Page::as_page(page_addr);
+        // 页面中存储了 2^9=512 个下一级页面的信息，其中包含下一级页面的地址和访问权限
+        // 获取地址后循环进行下一级查询
         page_addr = page.entries[index].get_paddr();
     }
 
