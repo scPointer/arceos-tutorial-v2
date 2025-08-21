@@ -11,7 +11,7 @@ extern crate axstd as std;
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     // 4. 内核启动与调试
-    
+
     // 启动运行内核程序远远不只是“不能用标准库”，还包含许多我们没有介绍过的流程。
     // 在许多教程，如 rCore-Tutorial 中，内核启动才是教学起点第一章的内容。
     // 但由于 Arceos 的启动流程比较完善，包含大量新的功能和概念，所以为避免大家走马观花，在本实验我们才正式介绍 Arceos 的内核启动流程。
@@ -31,7 +31,7 @@ fn main() {
     }
 
     // c. 在每节实验的开头第二行都有 #![cfg_attr(feature = "axstd", no_main)]。
-    // 根据第三节实验的 Rust 属性解析，这表示只要 feature 包含 axstd，那么就为本文件添加 no_main 属性。此处本不应该有一个 main 函数存在。 
+    // 根据第三节实验的 Rust 属性解析，这表示只要 feature 包含 axstd，那么就为本文件添加 no_main 属性。此处本不应该有一个 main 函数存在。
 
     // 事实上，启动的过程可以大致描述为：
 
@@ -56,13 +56,11 @@ fn main() {
     // OpenSBI 在完成自己的初始化后，还会把内核代码加载到 0x8020_0000 这个地址，并跳转运行。如第一节实验所示，之后内核运行时也可调用 OpenSBI 来完成读取字符/写入字符/关机等功能。
 
     // EXERCISE 1:
-    
-    // 1. 内核启动地址 0x8020_0000 以及虚拟机内存大小 128M 是在哪个文件中定义的？在 qemu 启动前输出的“Runing on qemu...”又是在哪个文件输出的？
-    // TIPS: 使用 grep 命令或者你使用的 IDE 的全局搜索功能。
-    // 2. 这些配置信息和参数不仅被启动脚本使用，还可以在内核运行中读取。这是由 axconfig 模块提供的功能。请分析代码，解释 axconfig 如何把文本配置文件变成运行时可调用的参数。
+
+    // 1. 内核启动地址、qemu内存大小等这些配置信息和参数不仅被启动脚本使用，还可以在内核运行中读取。这是由 axconfig 模块提供的功能。请分析代码，解释 axconfig 如何把文本配置文件变成运行时可调用的参数。
     // TIPS：[rust] Rust在编译时就会运行库中的 build.rs。
-    // 3. 修改下述代码，然后运行本文件（make run A=tour/new4），想办法通过 axconfig 打印出内核启动地址、qemu启动时的内存大小、启动核数。
-    
+    // 2. 修改下述代码，然后运行本文件（make run A=tour/new4），想办法通过 axconfig 打印出内核启动地址、qemu启动时的内存大小、启动核数。
+
     //use axconfig::{...};
     //println!("{:x} {:x} {}", ?, ?, ?);
 
@@ -79,7 +77,7 @@ fn main() {
     // Q：为什么内核入口是 0x8020_0000 这个地址？
     // A：这其实不是配置中可以任意修改的参数，它是由 OpenSBI 规定的。它需要占用 0x8000_0000 到 0x8020_0000 这段地址。
     // Q：为什么 0x8020_0000 处是这个函数？
-    // A：因为在函数开头指定了 #[link_section = ".text.boot"]。这个 .text.boot 段的名字并不特殊，只是因为在 axhal/linker.lds.S 文件中把 .text 放在开头，而 .text.boot 又是这一段的开头。这个文件被交给编译器，以确定代码编译后的排布。 
+    // A：因为在函数开头指定了 #[link_section = ".text.boot"]。这个 .text.boot 段的名字并不特殊，只是因为在 axhal/linker.lds.S 文件中把 .text 放在开头，而 .text.boot 又是这一段的开头。这个文件被交给编译器，以确定代码编译后的排布。
     // Q：为什么这个函数的名字是 _start？
     // A：因为这个符号是 C 指定的程序入口点。在本节实验开头提到，文件开头的 #![cfg_attr(feature = "axstd", no_main)] 也指定了本文件其实没有入口 main 函数，而真正的入口是 _start。
 
@@ -131,7 +129,7 @@ fn main() {
 
     // 下一步，跳转到 axruntime 中的 rust_main 函数执行
     //rust_main(cpu_id, dtb);
-    
+
     // 4.3.4 现在我们终于脱离了 axhal，来到 modules/axruntime/src/lib.rs 中的 rust_main 函数，开始全平台的通用初始化。这个函数比较长，就不再贴代码了，只介绍几个重要的步骤：
 
     // a. 打印 ArceOS 的 Logo 和一些配置信息。
@@ -150,7 +148,6 @@ fn main() {
     // h. 设置时钟中断，保证其每隔固定时间触发。
     // i. 调用名为 main 的函数，也就是本注释所在函数
     // j. nain 函数结束后，等待所有执行流都结束后，关机。
-    
 
     // EXERCISE 2:
     // 1. 在 boot.rs 中，启动栈属于 .bss.stack 段，后续的函数调用都发生在该栈上。为什么 rust_entry 函数清空 .bss 段时没有把自己锁在的栈也清空？
@@ -170,9 +167,72 @@ fn main() {
 
     // 4.4 内核调试
 
-    // 4.4.1 输出调试
-    // 4.4.2 反汇编调试
+    // 本节实验需要阅读理解多个 Arceos 内部模块的代码，之后的实验只会更加复杂。
+    // 为帮助大家完成后续实验，本节额外介绍一些在内核中常用的调试方法。
+
+    // 4.4.1 搜索——“这行报错输出是哪来的？”
+
+    // 本节的练习一的实验要求同学在 Arceos 中搜索特定字符串或语句。
+    // 此时使用 grep 命令或者 IDE 提供的搜索功能都是比较常规的做法。
+    // 更多用法参考： https://scpointer.github.io/rcore2oscomp/docs/lab2/pos.html
+
+    // 4.4.2 LOG输出——“这个变量的值为什么不对？”
+
+    // 此时最简单的方法是在出错代码之前插入调试语句，然后重新运行。
+    // 首先，你当然可以使用第一节实验提到的 println! 宏。
+    println!("println from axstd");
+    // 但许多内核模块在 axstd 下层，被 axstd 所依赖，无法直接打印。
+    // 此时可以在 Cargo.toml 中添加 axlog 或者 log 模块的依赖，然后使用 axlog 提供的日志宏。
+    // 包括 trace!/debug!/info!/warn!/error!，等级依次提高。
+
+    // 此外，并不是每条 LOG 语句都会被输出。默认只有等于高于或等于 warn 的宏会被输出。
+    // 你可以在使用类似 make run A=tour/new4 LOG=info 的命令来调整输出等级。
+
+    // 使用LOG输出时有一些注意事项：
+    // a. 不要依赖 Arceos 原有的输出语句，调试时可以【大胆插入新的】！
+    // b. 一些函数执行频率过高，可能导致输出刷屏。此时先按ctrl+A，松开后再按X可以【强行终止 qemu 虚拟机】，然后再做考虑。
+    // c. 添加输出语句后，如果出现第二节实验练习一的异常中断报错，说明可能【变量地址为空或非法】。此时可以尝试先输出变量地址，如 warn!("{:p}", &var);
+    // d. 如果发现添加输出语句本身辉影响代码执行结果，则大概率是栈溢出等内存问题。【加了条输出结果居然变了】时优先检查栈大小、虚拟映射以及是否在 unsafe 中读写了野指针。
+
+    // [rust] 输出16进制数、结构体内容等特殊格式可参考 https://doc.rust-lang.org/rust-by-example/hello/print.html
+
+    // 4.4.3 反汇编——“程序异常崩溃了，但找不到在哪？”
+
+    // 此时一般还是先建议用之前的方法，在内核各处插入任意的LOG输出，排查出错位置。
+    // 实在找不到时可以先【编译通过一次】，然后在实验模块的目录下找到形如 xxx_riscv64-qemu-virt.elf 的文件。
+    // 然后即可使用如下语句，将内核代码范汇编至文本文件（以 1.S 为例）
     // riscv64-linux-musl-objdump tour/new4/new4_riscv64-qemu-virt.elf -ld > 1.S
-    // 4.4.3 GDB调试
+
+    // 下一步，我们观察异常的输出（第二节实验练习一），例如：
+    // Unhandled Supervisor Page Fault @ 0xffffffc080200688, fault_vaddr=VA:0x1 (READ):
+    // 其中开头标注了异常原因，以 0xffffffc08020... 开头的是出错的代码地址
+    // 在反汇编的文本文件中找到该地址所在行即可。
+
+    // 其他架构的异常输出、反汇编文件的格式也是类似的。
+    // 这种调试方法需要同学比较熟悉对应架构的汇编语言。
+
+    // 4.4.4 GDB调试——“能不能像普通用户程序那样，正常动态单步调试内核？”
+
+    // Arceos 支持 gdb 调试功能，只需要将运行指令从 run 改为 debug 即可：
+    // make debug A=tour/new4
+    
+    // 调试的指令和注意事项可参考： https://scpointer.github.io/rcore2oscomp/docs/lab2/gdb.html#%E7%B2%BE%E7%AE%80-gdb-%E5%91%BD%E4%BB%A4
+    // 上面的教程是针对 rCore 的 GDB 调试写的，Arceos 与之有些区别：
+    // a. Arceos 的 GDB 输出和代码运行输出在同一个窗口里，不需要开两个终端
+    // b. Arceos 默认打一个 rust_entry() 函数的断点，并直接运行到此处，不需要从 0x8020_0000 开始打断点。
+    // c. Arceos 中同一个执行流的用户态和内核态使用同一个页表，进入用户态时无需切换（后续实验讨论）。
+
+
+    // EXERCISE 3:
+
+    // 1. 内核启动地址 0x8020_0000 以及虚拟机内存大小 128M 是在哪个文件中定义的？在 qemu 启动前输出的“Runing on qemu...”又是在哪个文件输出的？
+    // 2. 参考其他模块（如 axruntime），在本实验中添加适当语句引入 axlog，使得下面几条命令可正常编译运行
+    //info!("log info");
+    //warn!("log warn");
+    //error!("log error");
+    // 3. 反汇编本实验代码，分别写出 _start/rust_entry/rust_main/main 这几个函数的入口地址。然后分别写出它们是从哪一行开始被前一个函数跳转执行的。
+
+    // EXERCISE 3 END
+
     axhal::misc::terminate();
 }

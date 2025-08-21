@@ -46,7 +46,7 @@ BLK ?= n
 NET ?= n
 GRAPHIC ?= n
 BUS ?= pci
-PFLASH ?= y
+PFLASH ?= n
 PFLASH_IMG ?= pflash.img
 
 DISK_IMG ?= disk.img

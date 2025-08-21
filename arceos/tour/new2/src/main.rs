@@ -46,7 +46,7 @@ fn main() {
     // 本项目已经封装了类似本实验的内容，你可以直接使用在 axhal/trap.rs 中封装好的 IRQ, PAGE_FAULT, SYSCALL
 
     // EXERCISE 1：
-    // 1. 将上面操作 stvec 的两行代码注释掉，重新运行，观察执行后的现象。
+    // 1. 将上面 trap::set_trap(); 这一行代码注释掉，重新运行，观察执行后的现象。
     // 2. 【保持上一题的状态】，使用 axhal/trap.rs 中的 PAGE_FAULT 宏编写一个函数，打印一行输出（可参考example_trap_handler）
     // TIPS：可以在项目中搜索 PAGE_FAULT 宏如何使用
     // TIPS：在第二题中，你【无法】回到本函数中打印 Welcome back，只能额外打印输出后退出。这是正常的。
