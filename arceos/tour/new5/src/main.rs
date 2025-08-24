@@ -13,16 +13,13 @@ mod task;
 mod syscall;
 mod loader;
 
-use core::{arch::asm, ffi::c_char, usize};
+use core::arch::asm;
 
 use axstd::io;
 use axhal::paging::MappingFlags;
 use axhal::arch::UspaceContext;
 use axhal::mem::VirtAddr;
-use axsync::Mutex;
-use alloc::sync::Arc;
 use axmm::AddrSpace;
-use loader::load_user_app;
 use axtask::TaskExtRef;
 use axhal::trap::{register_trap_handler, PAGE_FAULT};
 
@@ -97,7 +94,7 @@ fn main() {
     // 翻阅 Arceos 代码，地址空间的类型为 axmm 模块中的 AddrSpace，其中包含（外部引用模块）中的 MemorySet 类型，内部是 MemoryArea 类型。
     // MemoryArea 与 MemRegion 功能类似，但内部多一个 MappingBackend 存储额外信息。
 
-    // 5.2 宏内核 vs. unikernel 中的程序：文件系统和加载
+    // 5.2 加载用户程序
 
     // 5.2.1 文件系统与加载
 
@@ -118,6 +115,8 @@ fn main() {
     //      make run A=tour/new5 BLK=y
 
     // 内核启动之后，我们从文件系统中加载对应名字的文件
+    // 你可以阅读这个文件了解细节，但这不是必要的。
+    use loader::load_user_app;
     if let Err(e) = load_user_app("/sbin/origin", &mut uspace) {
         panic!("Cannot load app! {:?}", e);
     }
@@ -130,6 +129,9 @@ fn main() {
 
     // 在第一节实验中提到，内核可以调用下层 OpenSBI 的接口；在第四节实验中提到，内核启动后，无需任何初始化，即可立即使用这些接口。
     // 事实上，“使用”这些接口是通过特殊硬件指令实现的。在 RISC-V 架构下，这条指令是 ecall。
+    // ecall 就像第二节实验中的非法指针读取那样，会立即触发异常。
+    // 此时，各个寄存器中的值不再被视作“程序出错时的状态”，而是“发起请求的参数”。
+    // 下面简单演示一遍这个流程。
 
     unsafe {
         let mut return_val: usize = usize::MAX;
@@ -137,10 +139,10 @@ fn main() {
         println!("enter any key:");
         while return_val == usize::MAX {
             asm!("ecall",
-            // 执行前，内核会在约定好的寄存器中填入参数，代表请求类型。
+            // 执行前，内核需要在约定好的寄存器中填入参数，代表请求类型。
                 in("a7") 2,
-            // 硬件会判断异常的类型，将其交给机器态的 OpenSBI 处理（而非内核的 trap 函数）。
-            // OpenSBI 读取并识别请求参数后，完成操作，并将返回值写入约定好的寄存器中。
+            // ecall 执行后，硬件会判断异常的类型，将其交给机器态的 OpenSBI 处理（而非内核的 trap 函数）。
+            // OpenSBI 根据参数完成操作，并将返回值写入约定好的寄存器中。
                 out("a0") return_val,
             );
         }
@@ -158,36 +160,81 @@ fn main() {
     //
     // 其本质就是将参数填入特定寄存器中，然后调用 ecall 指令。
 
+    // 如何定义什么样的参数代表什么请求呢？
     // 第一节实验给出的文档介绍了 OpenSBI 各个接口参数的定义，即输入什么数代表什么功能，它是和 RISC-V 这个架构绑定的。
     // 而在用户与内核这一层，使用的是一组被称为POSIX 【syscall】的接口，它目前是与 Linux 这个平台绑定的。
+
+    // 有了这套系统，用户只需要在寄存器中填入对应的“魔法咒语”，然后调用 ecall，即可在完全不知道内核实现的情况下，使用内核提供的服务。
     // 我们稍后还会详细介绍 syscall 这层接口。
 
     // EXERCISE 1:
-    // 1. ecall 指令并不直接写在 Arceos 的代码里，而是在依赖库中被调用。请利用上一节实验提到的反汇编方法，在内核二进制文件中找到 ecall。ecall 出现在什么函数中？为什么会是它们？
+    // 1. (5.2)节提到的 ecall 指令并不直接写在 Arceos 的代码里，而是在依赖库中被调用。请利用上一节实验提到的反汇编方法，在内核二进制文件中找到 ecall。ecall 出现在什么函数中？为什么会是它们？
+    // 2. 在第4节中，内核启动之前，OpenSBI 将编译后的内核代码放置到内核启动地址。而用户程序启动时，内核是如何完成这一步的？
+    // 3， 阅读本实验中的 loader.rs 文件，尝试解释：为什么访问用户地址空间时，需要查页表获取物理地址，然后再用 phys_to_virt 转回虚拟地址才能访问，而不是直接访问？
     // EXERCISE 1 END
 
+    // 5.3 初始化用户栈
 
-    // 5.3 初始化整体流程对比：用户栈、“异常中断”和“堆”
-    // 5.4 进入用户态：伪装“出生点”
-    // 5.5 用户态和内核态的接口：syscall
-    // A new address space for user app.
+    // 在第四节实验中提到，内核启动时必须先初始化栈，之后才可以进入 Rust 代码申请局部变量乃至调用函数。
+    // 但上面的用户程序代码却没有这一步。这当然是因为内核替用户完成了初始化。
+
+    // 首先，取地址空间的最高处的一段地址，用来放置用户栈。
+    let ustack_top = uspace.end();
+    let ustack_vaddr = ustack_top - crate::USER_STACK_SIZE;
+    println!(
+        "Mapping user stack: [{:#x?},{:#x?}]",
+        ustack_vaddr, ustack_top
+    );
     
+    // 然后调用 axmm 模块实现的函数，在 ustack_vaddr 这里映射一段虚拟地址。
+    // 这里没有提供对应的物理地址，是因为 map_alloc 函数包含了“申请分配”的步骤，
+    // 会在全局分配器中找到未被使用的空物理页，然后映射到上述虚拟地址。
+    uspace.map_alloc(
+        ustack_vaddr,
+        crate::USER_STACK_SIZE,
+        // 特别提一下此处的 USER 参数位：只有包含此参数的页才能被用户访问，
+        // 如果用户访问了没有 USER 位的页，则会触发异常。
+        MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
+        true,
+    ).unwrap();
 
+    // 这个映射既会记录在页表里，也会记录在 usapce 内部的 MemoryArea 里。
+    println!("{:#x?}", uspace);
+    
+    // 5.4 进入用户态：伪装“存档点”
 
-
-    // Init user stack.
-    let ustack_top = init_user_stack(&mut uspace, false).unwrap();
-    ax_println!("New user address space: {:#x?}", uspace);
-
-    // Let's kick off the user process.
-    let user_task = task::spawn_user_task(
+    // 接下来就可以进入用户程序运行了。
+    use task::spawn_user_task;
+    use axsync::Mutex;
+    use alloc::sync::Arc;
+    let user_task = spawn_user_task(
+        // 首先，将地址空间套上智能指针，这是为了线程间安全传输，以及在无人使用时自动销毁。
         Arc::new(Mutex::new(uspace)),
+        // 还需要构建一个第三节实验提到的上下文，或者说“存档点”。
+        // 其中指示程序运行到 APP_ENTRY，栈的位置在 ustack_top，其余信息为空。
         UspaceContext::new(APP_ENTRY.into(), ustack_top),
     );
+    // 接下来请先到同目录下 task.rs 文件中阅读。
 
-    // Wait for user process to exit ...
+    // 进入用户程序的过程相当于：
+    // a. 创建一个新的执行流，填入上面初始化好的信息；
+    // b. 把用户第一条代码的地址填入 sepc，伪装成此处发生了一次异常；
+    // c. 把用户程序初始状态 UspaceContext::new() 伪装成此次异常发生时的状态；
+    // d. 通过 sret 指令通知硬件异常解除，“返回”用户态执行
+
+    // 从用户程序的视角看，此时自己正运行 APP_ENTRY（第一条代码）上的指令；
+    // 且刚刚从异常中恢复，记忆（初始化的用户上下文）一片空白；
+    // 但自身的功能是完整的（栈等资源均已准备好），于是顺利继续运行。
+
+    // 而当期这个启动内核的执行流只需要等待用户程序终止，
     let exit_code = user_task.join();
+    // 然后再自己退出关机
     ax_println!("monolithic kernel exit [{:?}] normally!", exit_code);
+
+    // 5.5 用户态和内核态的接口：syscall
+
+    // 此处虽然 main() 函数结束了，但实验说明并没有结束。
+    // 我们还需要解释当“用户向内核发起请求”或“用户遇到真实异常需要内核帮助”时会发生什么。
 }
 
 fn init_user_stack(uspace: &mut AddrSpace, populating: bool) -> io::Result<VirtAddr> {

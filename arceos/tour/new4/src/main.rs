@@ -87,7 +87,7 @@ fn main() {
     //      mv      s0, a0                  // save hartid
     //      mv      s1, a1                  // save DTB pointer
 
-    // 然后设置栈指针。有了栈之后才可以申请局部变量乃至调用函数。
+    // 然后设置栈指针。Rust 等高级语言在编译时均假设栈存在，必须先有栈才可以进入 Rust 代码申请局部变量乃至调用函数。
     // [rust] 在 _start 函数被”调用“时并没有设置栈。之所以可以这样，是因为函数前的[naked]标签告诉Rust编译器不要为这个函数生成压栈退栈的代码。
     //      la      sp, {boot_stack}
     //      li      t0, {boot_stack_size}

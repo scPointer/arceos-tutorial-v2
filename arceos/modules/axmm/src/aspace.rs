@@ -328,6 +328,7 @@ impl fmt::Debug for AddrSpace {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("AddrSpace")
             .field("va_range", &self.va_range)
+            .field("areas", &self.areas)
             .field("page_table_root", &self.pt.root_paddr())
             .finish()
     }

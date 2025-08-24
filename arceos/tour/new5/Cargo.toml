@@ -12,3 +12,8 @@ axtask = { workspace = true }
 axlog = { workspace = true }
 axerrno = "0.1"
 linkme = "0.3"
+
+[target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
+riscv = "0.11"
+sbi-rt = { version = "0.0.3", features = ["legacy"] }
+riscv_goldfish = { version = "0.1", optional = true }
