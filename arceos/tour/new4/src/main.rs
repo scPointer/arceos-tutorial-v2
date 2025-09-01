@@ -70,7 +70,7 @@ fn main() {
 
     // 内核刚启动时，除了调用下层 OpenSBI，其他所有初始化操作都需要自己完成。
 
-    // 内核启动的第一条语句在地址 0x8020_0000 处，它在 modules/axhal/src/platform/qemu_virt_riscv/boot.rs 文件的 _start 函数中。下面请【打开对应文件，对照阅读接下来的教程】。
+    // 内核启动的第一条语句在地址 0x8020_0000 处，它在 modules/axhal/src/platform/qemu_virt_riscv/boot.rs 文件的 _start 函数中。下面请【打开该文件，对照阅读接下来的教程】。
 
     // 4.3.1 先回答几个你可能会好奇的“为什么”：
 
@@ -113,7 +113,7 @@ fn main() {
     //      add     a2, a2, s2
     //      jalr    a2                      // call rust_entry(hartid, dtb)
 
-    // 4.3.3 现在我们来到 modules/axhal/src/platform/qemu_virt_riscv/mod.rs 的 rust_entry 函数，它的流程相对简单：
+    // 4.3.3 现在我们来到 modules/axhal/src/platform/qemu_virt_riscv/mod.rs 的 rust_entry 函数，请【打开该文件，对照阅读接下来的教程】。它的流程相对简单：
     // 先清空 BSS 段，这里保存着所有未初始化的全局变量。
     //crate::mem::clear_bss();
 
@@ -130,7 +130,7 @@ fn main() {
     // 下一步，跳转到 axruntime 中的 rust_main 函数执行
     //rust_main(cpu_id, dtb);
 
-    // 4.3.4 现在我们终于脱离了 axhal，来到 modules/axruntime/src/lib.rs 中的 rust_main 函数，开始全平台的通用初始化。这个函数比较长，就不再贴代码了，只介绍几个重要的步骤：
+    // 4.3.4 现在我们终于脱离了 axhal，来到 modules/axruntime/src/lib.rs 中的 rust_main 函数，开始全平台的通用初始化。请【打开该文件，对照阅读接下来的教程】。这个函数比较长，就不再贴代码了，只介绍几个重要的步骤：
 
     // a. 打印 ArceOS 的 Logo 和一些配置信息。
     // [rust] 与 axconfig 那样由 Arceos 自己写规则管理的配置不同，此处的配置信息使用 Rust 提供的 option_env! 宏，是 Rust 管理的全局环境变量。

@@ -10,7 +10,6 @@
 use axerrno::LinuxError;
 use axhal::arch::TrapFrame;
 use axhal::trap::{register_trap_handler, SYSCALL};
-use axtask::TaskExtRef;
 
 // 5.5.1 系统调用的参数定义
 

@@ -5,7 +5,8 @@ use axmm::AddrSpace;
 use std::fs::File;
 use std::io::{self, Read};
 
-// 一个极简的用户程序加载函数
+// 一个仅用于本实验的用户程序加载函数，其中假定用户程序大小不超过 256B。
+// 真正的加载函数需要从文件中读取出用户程序的入口地址、解释器、分段等信息，然后按规范加载。
 pub fn load_user_app(fname: &str, uspace: &mut AddrSpace) -> io::Result<()> {
     let mut buf = [0u8; 256];
     // 从文件系统中加载 fname 文件中的所有内容。

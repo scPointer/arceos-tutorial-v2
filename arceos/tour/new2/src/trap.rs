@@ -1,12 +1,11 @@
 //! 演示硬件异常中断机制
 
+// （你可能需要自学什么叫通用寄存器，再了解下面的“特权寄存器”）
 // sie, stvec, scause 这些是 RISC-V 架构的特权寄存器。
 // 我们不详述这些寄存器的细节定义，但你可能需要了解“特权寄存器”这一概念。
 // 它们和通用寄存器不同，不仅是硬件上存储的数据，还通过特殊规则直接影响硬件行为
 // 这些寄存器的规定和行为十分复杂，是由 RISC-V 指令集规定的。
 // 如感兴趣，你可以在这里获取最新的指令集 https://github.com/riscv/riscv-isa-manual/releases/
-//
-// [TODO] 可能需要讲解什么叫通用寄存器
 //
 // 其他架构也有类似的规范，提供类似的功能。
 // axhal 模块统一了这些类似的功能，因此在开发时只需调用 axhal 即可。
@@ -17,8 +16,6 @@ use crate::magic::TrapFrame;
 
 /// 在 example_trap 环境中执行外部提供的函数 f
 pub fn set_trap() {
-    //#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
-    // [rust] [TODO] 学习编译选项 cfg
     // [rust] unsafe 是 Rust 的特殊关键字。
     // 声明函数或 trait 时添加此关键字表示 Rust 的编译器检查无法保护此处的安全性，相当于“免责声明”；
     // 另一方面，unsafe 函数或 trait 的调用者(此处的内核)必须在调用时添加 unsafe 关键字，表示“已了解该风险”。

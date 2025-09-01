@@ -34,7 +34,7 @@ fn main() {
     //#[cfg_attr(all(target_os = "none", not(test)), global_allocator)]
     //static GLOBAL_ALLOCATOR: GlobalAllocator = GlobalAllocator::new();
     //
-    // [TODO] 了解什么是堆、什么是栈
+    // （你可能需要自学了解什么是堆、什么是栈，再理解之后的内容）
     // 当 Vec 这类变量被分配在堆上的时候，需要调用类似 C 中的 malloc 或者 C++ 中的 new() 来获取一段内存。
     // 而在 Rust 中，实际被调用的是有 #[global_allocator] 标记的变量，以及它锁实现的 trait GlobalAlloc。
     // 如果删去本实验的 Cargo.toml 文件中的 axstd 的 "alloc" 这一属性，则无法再使用动态内存分配功能。

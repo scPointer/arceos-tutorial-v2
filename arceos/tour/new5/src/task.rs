@@ -102,4 +102,7 @@ pub unsafe fn enter_user(user_ctx: usize, entry: usize, kstack_top: usize) -> ! 
         options(noreturn),
     )
     // 除了涉及 kernel_trap_addr 的几条保存之外，上面执行的汇编代码相当于第二节实验中 magic/trap.S 的后半部分。
+    // 即，将准备好的上下文真正装入寄存器中。
+    // 最后再用一条 sret 指令让硬件“返回”用户态执行。
+    // 接下来请回到 main.rs 中继续阅读。
 }
